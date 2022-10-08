@@ -7,50 +7,6 @@ use mnist::{MnistBuilder, NormalizedMnist};
 use std::ops::Mul;
 use std::sync::Arc;
 
-fn validate(net: &Network, mnist: &NormalizedMnist) -> (f64, f64) {
-    let target_n = 400;
-
-    let mut error = 0.0;
-    let mut n = 0;
-    let mut correct = 0;
-
-    let imgs = mnist
-        .tst_img
-        .chunks_exact(28 * 28)
-        .map(|img| {
-            let img = img.iter().map(|v| *v as f64).collect::<Vec<_>>();
-            Array::new(&img, dim4!(28 * 28))
-        })
-        .take(target_n);
-    let labels = mnist
-        .tst_lbl
-        .chunks_exact(10)
-        .map(|lbl| {
-            let lbl = lbl.iter().map(|v| *v as f64).collect::<Vec<_>>();
-            Array::new(&lbl, dim4!(10))
-        })
-        .take(target_n);
-
-    for (img, lbl) in imgs.zip(labels) {
-        n += 1;
-        let result = net.forward(img.clone());
-        let diff = &result - &lbl;
-        let error = af::sum_all(&(&diff * &diff)).0;
-        //error += af::sum_all(&(&diff * &diff)).0;
-
-        let (_, _, result_idx) = af::imax_all(&result);
-        let (_, _, correct_idx) = af::imax_all(&lbl);
-        if result_idx == correct_idx {
-            correct += 1;
-        }
-    }
-
-    println!("{} out of {}", correct, n);
-
-    let accuracy = correct as f64 / n as f64;
-    (error / (n as f64 * 10.0), accuracy * 100.0)
-}
-
 fn main() {
     arrayfire::info();
 
@@ -103,6 +59,50 @@ fn main() {
     }
 
     does_it_work(&network, &mnist);
+}
+
+fn validate(net: &Network, mnist: &NormalizedMnist) -> (f64, f64) {
+    let target_n = 400;
+
+    let mut error = 0.0;
+    let mut n = 0;
+    let mut correct = 0;
+
+    let imgs = mnist
+        .tst_img
+        .chunks_exact(28 * 28)
+        .map(|img| {
+            let img = img.iter().map(|v| *v as f64).collect::<Vec<_>>();
+            Array::new(&img, dim4!(28 * 28))
+        })
+        .take(target_n);
+    let labels = mnist
+        .tst_lbl
+        .chunks_exact(10)
+        .map(|lbl| {
+            let lbl = lbl.iter().map(|v| *v as f64).collect::<Vec<_>>();
+            Array::new(&lbl, dim4!(10))
+        })
+        .take(target_n);
+
+    for (img, lbl) in imgs.zip(labels) {
+        n += 1;
+        let result = net.forward(img.clone());
+        let diff = &result - &lbl;
+        let error = af::sum_all(&(&diff * &diff)).0;
+        //error += af::sum_all(&(&diff * &diff)).0;
+
+        let (_, _, result_idx) = af::imax_all(&result);
+        let (_, _, correct_idx) = af::imax_all(&lbl);
+        if result_idx == correct_idx {
+            correct += 1;
+        }
+    }
+
+    println!("{} out of {}", correct, n);
+
+    let accuracy = correct as f64 / n as f64;
+    (error / (n as f64 * 10.0), accuracy * 100.0)
 }
 
 fn does_it_work(net: &Network, mnist: &NormalizedMnist) {
